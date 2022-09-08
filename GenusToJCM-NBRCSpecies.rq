@@ -1,0 +1,29 @@
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX mccv: <http://purl.jp/bio/10/mccv#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX sio: <http://semanticscience.org/resource/>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX tax: <http://ddbj.nig.ac.jp/ontologies/taxonomy/>
+
+SELECT DISTINCT ?strain_id ?strain_number ?strain_identifier
+  (GROUP_CONCAT(DISTINCT ?organism_name; SEPARATOR = ", ") AS ?organism_names)
+  (GROUP_CONCAT(DISTINCT ?application; SEPARATOR = ", ") AS ?applications)
+  (GROUP_CONCAT(DISTINCT ?other_link; SEPARATOR = ", ") AS ?other_collections)
+FROM <http://purl.jp/bio/103/nite/culture/>
+FROM <https://metadb.riken.jp/metadb/db/rikenbrc_jcm_microbe>
+FROM <http://integbio.jp/rdf/ontology/taxonomy>
+WHERE {
+        ?strain_id (mccv:MCCV_000065 | mccv:MCCV_000023) ?target_tax_id .
+        ?target_tax_id rdfs:subClassOf* ?genus_tax_id .
+        ?genus_tax_id dcterms:identifier ?genus_identifier ;
+                      tax:rank tax:Genus .
+FILTER(?genus_identifier = 1883 || ?genus_identifier = 561) .       
+?strain_id mccv:MCCV_000010 ?strain_number .
+        ?strain_id dcterms:identifier ?strain_identifier .
+        OPTIONAL { ?strain_id mccv:MCCV_000033 ?application .}
+        OPTIONAL { ?strain_id skos:prefLabel | mccv:MCCV_000011 ?organism_name .}
+        OPTIONAL { ?strain_id mccv:MCCV_000024 / (dcterms:identifier | mccv:MCCV_000026) ?other_link .
+        }
+}
+GROUP BY ?strain_id ?strain_number ?strain_identifier
+ORDER BY ?organism_names ?strain_number
